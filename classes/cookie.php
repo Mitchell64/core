@@ -26,31 +26,6 @@ namespace Fuel\Core;
 class Cookie {
 
 	/**
-	 * @var  integer  Number of seconds before the cookie expires
-	 */
-	public static $expiration = 0;
-
-	/**
-	 * @var  string  Restrict the path that the cookie is available to
-	 */
-	public static $path = '/';
-
-	/**
-	 * @var  string  Restrict the domain that the cookie is available to
-	 */
-	public static $domain = null;
-
-	/**
-	 * @var  boolean  Only transmit cookies over secure connections
-	 */
-	public static $secure = false;
-
-	/**
-	 * @var  boolean  Only transmit cookies over HTTP, disabling Javascript access
-	 */
-	public static $http_only = false;
-
-	/**
 	 * Gets the value of a signed cookie. Cookies without signatures will not
 	 * be returned. If the cookie signature is present, but invalid, the cookie
 	 * will be deleted.
@@ -79,33 +54,44 @@ class Cookie {
 	 * @param   integer  lifetime in seconds
 	 * @param   string   path of the cookie
 	 * @param   string   domain of the cookie
+	 * @param   boolean  only transmit over secure HTTPS connection from client
+	 * @param   boolean  make cookie accessible only through HTTP protocol, not through scripting languages
 	 * @return  boolean
 	 */
-	public static function set($name, $value, $expiration = null, $path = null, $domain = null)
+	public static function set($name, $value, $expiration = null, $path = null, $domain = null, $secure = null, $http_only = null)
 	{
-		// If nothing is provided, use the standard amount of time
 		if ($expiration === null)
 		{
-			$expiration = time() + 86500;
-		}
-		// If it's set, add the current time so we have an offset
-		else
-		{
-			$expiration = $expiration > 0 ? $expiration + time() : 0;
+			$expiration = \Config::get('cookie.expiration', 86400);
 		}
 
-		// use the class defaults for path and domain if not provided
-		if (empty($path))
+		// If expiration > 0, need to add to current time. If expiration == 0, cookie will expire at end of session or when browser closes
+		if ($expiration > 0)
 		{
-			$path = static::$path;
+			$expiration += time();
 		}
 
-		if (empty($domain))
+		if ($path === null)
 		{
-			$domain = static::$domain;
+			$path = \Config::get('cookie.path', '/');
 		}
 
-		return setcookie($name, $value, $expiration, $path, $domain, static::$secure, static::$http_only);
+		if ($domain === null)
+		{
+			$domain = \Config::get('cookie.domain', '');
+		}
+
+		if ($secure === null)
+		{
+			$secure = \Config::get('cookie.secure', false);
+		}
+
+		if ($http_only === null)
+		{
+			$http_only = \Config::get('cookie.http_only', false);
+		}
+
+		return setcookie($name, $value, $expiration, $path, $domain, $secure, $http_only);
 	}
 
 	/**
